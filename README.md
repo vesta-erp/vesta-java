@@ -1,4 +1,3 @@
-# Vesta API — Java / Spring Boot
 
 API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos de emergência para órgãos públicos (prefeituras, defesa civil, governos estaduais). Projeto acadêmico FIAP Global Solution 2026 — 2TDSA.
 
