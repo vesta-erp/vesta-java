@@ -1,3 +1,4 @@
+# Vesta API — Java / Spring Boot
 
 API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos de emergência para órgãos públicos (prefeituras, defesa civil, governos estaduais). Projeto acadêmico FIAP Global Solution 2026 — 2TDSA.
 
@@ -11,10 +12,11 @@ API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos 
 | Framework | Spring Boot 3.3.4 |
 | Segurança | Spring Security 6 + JWT (jjwt 0.12.6) |
 | Persistência | Spring Data JPA / Hibernate 6 + Oracle (ojdbc11 23.4) |
+| Migrations | Flyway |
 | Cache | Spring Cache + Caffeine |
 | Documentação | Springdoc OpenAPI 2.6.0 (Swagger UI) |
 | Integração | Spring Cloud OpenFeign (serviço .NET) |
-| IA | Spring AI 1.0.0 — Anthropic Claude |
+| IA | Spring AI — Azure OpenAI (gpt-4o) |
 | Testes | JUnit 5, Mockito, MockMvc, H2 (modo Oracle) |
 
 ---
@@ -32,11 +34,13 @@ API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos 
 
 | Variável | Descrição | Padrão (dev) |
 |---|---|---|
-| `ORACLE_URL` | JDBC URL do Oracle | `jdbc:oracle:thin:@localhost:1521/XEPDB1` |
-| `ORACLE_USER` | Usuário do banco | `vesta` |
-| `ORACLE_PASS` | Senha do banco | `vesta` |
-| `JWT_SECRET` | Chave secreta JWT (mín. 256 bits) | valor padrão inseguro |
-| `ANTHROPIC_API_KEY` | Chave da API Anthropic (resumo IA) | _(vazio — IA desativada)_ |
+| `DB_VESTA_URL` | JDBC URL do Oracle | `jdbc:oracle:thin:@localhost:1521/XEPDB1` |
+| `DB_VESTA_USER` | Usuário do banco | `vesta` |
+| `DB_VESTA_PASSWORD` | Senha do banco | `vesta` |
+| `Jwt__SecretKey` | Chave secreta JWT (mín. 256 bits) | valor padrão inseguro |
+| `AZURE_OPENAI_API_KEY` | Chave da API Azure OpenAI (resumo IA) | _(vazio — IA desativada)_ |
+| `AZURE_OPENAI_ENDPOINT` | Endpoint do Azure OpenAI | _(vazio — IA desativada)_ |
+| `AZURE_OPENAI_DEPLOYMENT` | Nome do deployment no Azure OpenAI | `gpt-4o` |
 | `DOTNET_URL` | URL do serviço .NET de criticidade | `http://localhost:5000` |
 
 ---
@@ -44,7 +48,7 @@ API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos 
 ## Como executar
 
 ```bash
-# clonar e entrar no diretório
+# entrar no diretório
 cd java/vesta-api
 
 # compilar e rodar testes
@@ -52,10 +56,10 @@ mvn verify
 
 # subir a aplicação
 mvn spring-boot:run \
-  -DORACLE_URL=jdbc:oracle:thin:@... \
-  -DORACLE_USER=vesta \
-  -DORACLE_PASS=vesta \
-  -DJWT_SECRET=sua-chave-secreta-256bits
+  -DDB_VESTA_URL=jdbc:oracle:thin:@... \
+  -DDB_VESTA_USER=vesta \
+  -DDB_VESTA_PASSWORD=vesta \
+  -DJwt__SecretKey=sua-chave-secreta-256bits
 ```
 
 A API sobe em `http://localhost:8080`.  
@@ -175,6 +179,11 @@ src/main/java/br/com/fiap/vesta/
 ├── controller/      # Controllers REST com HATEOAS
 ├── client/          # Feign client para o serviço .NET
 └── exception/       # GlobalExceptionHandler e exceções customizadas
+
+src/main/resources/
+├── application.yml
+├── application-test.yml
+└── db/migration/    # Scripts Flyway (V1__create_tables, V2__seed_data)
 ```
 
 ---
