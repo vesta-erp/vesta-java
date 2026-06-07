@@ -17,7 +17,7 @@ API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos 
 | Documentação | Springdoc OpenAPI 2.6.0 (Swagger UI) |
 | Integração | Spring Cloud OpenFeign (serviço .NET) |
 | IA | Spring AI — Azure OpenAI (gpt-4o) |
-| Testes | JUnit 5, Mockito, MockMvc, H2 (modo Oracle) |
+| Testes | JUnit 5, Mockito, MockMvc |
 
 ---
 
@@ -198,7 +198,7 @@ mvn test
 mvn test -Dtest=AbrigoServiceTest
 ```
 
-Os testes usam H2 em memória (modo Oracle). O perfil `test` é ativado automaticamente via `application-test.yml`.
+Os testes de serviço usam Mockito (sem banco de dados). O perfil `test` é ativado automaticamente via `application-test.yml`, que desabilita o Flyway e configura o JWT para o ambiente de testes.
 
 ---
 
