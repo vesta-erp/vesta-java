@@ -5,7 +5,6 @@ import br.com.fiap.vesta.dto.response.AssistenteRespostaResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,12 +29,6 @@ public class AssistenteOperacionalService {
     private final ChatClient chatClient;
     private final ContextoOperacionalService contextoService;
 
-    @Value("${spring.ai.azure.openai.endpoint:NAO_CONFIGURADO}")
-    private String endpoint;
-
-    @Value("${spring.ai.azure.openai.chat.options.deployment-name:NAO_CONFIGURADO}")
-    private String deployment;
-
     public AssistenteOperacionalService(ChatClient chatClient,
                                         ContextoOperacionalService contextoService) {
         this.chatClient = chatClient;
@@ -46,8 +39,6 @@ public class AssistenteOperacionalService {
         String contexto = contextoService.montarSnapshot();
         String systemPrompt = SYSTEM_PROMPT_BASE.formatted(contexto);
 
-        log.info("[Assistente] endpoint={} | deployment={}", endpoint, deployment);
-
         String resposta;
         try {
             resposta = chatClient.prompt()
@@ -56,12 +47,8 @@ public class AssistenteOperacionalService {
                 .call()
                 .content();
         } catch (Exception e) {
-            String causaChain = buildCauseChain(e);
-            log.error("[Assistente] Falha ao chamar Azure OpenAI. endpoint={} deployment={} | erro={}", endpoint, deployment, causaChain, e);
-            resposta = "[DIAGNOSTICO Azure OpenAI]"
-                + "\n endpoint=" + endpoint
-                + "\n deployment=" + deployment
-                + "\n erro=" + causaChain;
+            log.error("[Assistente] Falha ao chamar Azure OpenAI: {}", buildCauseChain(e), e);
+            resposta = "Assistente de IA indisponível no momento. Tente novamente em instantes.";
         }
 
         return new AssistenteRespostaResponse(resposta, contexto, LocalDateTime.now());
@@ -72,7 +59,7 @@ public class AssistenteOperacionalService {
         Throwable current = t;
         int depth = 0;
         while (current != null && depth < 5) {
-            if (depth > 0) sb.append(" → Causa: ");
+            if (depth > 0) sb.append(" → ");
             sb.append(current.getClass().getSimpleName()).append(": ").append(current.getMessage());
             current = current.getCause();
             depth++;
