@@ -29,6 +29,12 @@ public class Usuario {
     @JoinColumn(name = "id_abrigo")
     private Abrigo abrigo;
 
+    @Column(name = "nr_cpf", length = 14, unique = true)
+    private String nrCpf;
+
+    @Column(name = "nr_telefone", length = 20)
+    private String nrTelefone;
+
     @Column(name = "st_ativo", nullable = false, length = 1)
     private String stAtivo = "S";
 
@@ -54,6 +60,10 @@ public class Usuario {
     public void setPerfil(PerfilAcesso perfil) { this.perfil = perfil; }
     public Abrigo getAbrigo() { return abrigo; }
     public void setAbrigo(Abrigo abrigo) { this.abrigo = abrigo; }
+    public String getNrCpf() { return nrCpf; }
+    public void setNrCpf(String nrCpf) { this.nrCpf = nrCpf; }
+    public String getNrTelefone() { return nrTelefone; }
+    public void setNrTelefone(String nrTelefone) { this.nrTelefone = nrTelefone; }
     public String getStAtivo() { return stAtivo; }
     public void setStAtivo(String stAtivo) { this.stAtivo = stAtivo; }
     public LocalDateTime getDtCriacao() { return dtCriacao; }
