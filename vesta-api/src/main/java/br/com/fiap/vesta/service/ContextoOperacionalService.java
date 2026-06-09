@@ -62,11 +62,12 @@ public class ContextoOperacionalService {
         List<IndicadorAbrigoResponse> ranking = indicadorService.rankingCriticidade();
         for (int i = 0; i < Math.min(ranking.size(), 5); i++) {
             var ind = ranking.get(i);
-            sb.append(String.format("%d. %-25s — score: %d (%s)\n",
-                i + 1,
-                ind.nmAbrigo(),
-                ind.nivelCriticidade(),
-                ind.descricaoCriticidade()));
+            String scoreInfo = ind.scoreNet() != null
+                ? String.format("%.1f (%s)", ind.scoreNet(), ind.nivelNet())
+                : String.format("%d (%s)", ind.nivelCriticidade(), ind.descricaoCriticidade());
+            String justInfo = ind.justificativa() != null ? " | " + ind.justificativa() : "";
+            sb.append(String.format("%d. %-25s — score: %s%s\n",
+                i + 1, ind.nmAbrigo(), scoreInfo, justInfo));
         }
 
         // Solicitações pendentes e atrasadas

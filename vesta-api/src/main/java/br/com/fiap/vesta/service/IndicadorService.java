@@ -63,7 +63,7 @@ public class IndicadorService {
     }
 
     private IndicadorAbrigoResponse enriquecer(IndicadorAbrigoResponse local, CriticidadeResponse score) {
-        if (score == null) return local;
+        if (score == null || "INDISPONIVEL".equals(score.nivel())) return local;
         return new IndicadorAbrigoResponse(
             local.idAbrigo(), local.nmAbrigo(), local.nmRegiao(), local.stStatus(),
             local.qtCapacidadeMaxima(), local.qtOcupacaoAtual(), local.taxaOcupacao(),

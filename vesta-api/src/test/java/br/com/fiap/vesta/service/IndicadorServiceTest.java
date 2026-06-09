@@ -103,7 +103,7 @@ class IndicadorServiceTest {
     }
 
     @Test
-    void indicadorPorAbrigo_comFallbackAtivado_nivelNetEhINDISPONIVEL() {
+    void indicadorPorAbrigo_comFallbackAtivado_scoreNetNuloECriticidadeLocalRetornada() {
         mockRepositorios();
         when(abrigoRepository.findById(1L)).thenReturn(Optional.of(abrigo));
         when(criticidadeClient.buscarCriticidade(1L)).thenReturn(
@@ -113,7 +113,8 @@ class IndicadorServiceTest {
 
         IndicadorAbrigoResponse ind = indicadorService.indicadorPorAbrigo(1L);
 
-        assertThat(ind.nivelNet()).isEqualTo("INDISPONIVEL");
+        assertThat(ind.scoreNet()).isNull();
+        assertThat(ind.nivelNet()).isNull();
         assertThat(ind.nivelCriticidade()).isGreaterThanOrEqualTo(0);
     }
 }
