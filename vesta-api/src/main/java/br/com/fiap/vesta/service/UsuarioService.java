@@ -46,8 +46,8 @@ public class UsuarioService {
         if (usuarioRepository.existsByDsEmail(request.dsEmail())) {
             throw new ConflictException("Email já cadastrado: " + request.dsEmail());
         }
-        if (request.nrCpf() != null && !request.nrCpf().isBlank()
-                && usuarioRepository.existsByNrCpf(request.nrCpf())) {
+        String cpf = normalizarCpf(request.nrCpf());
+        if (cpf != null && usuarioRepository.existsByNrCpf(cpf)) {
             throw new ConflictException("CPF já cadastrado.");
         }
         if (request.dsSenha() == null || request.dsSenha().isBlank()) {
@@ -62,7 +62,7 @@ public class UsuarioService {
 
         Usuario usuario = new Usuario();
         usuario.setNmUsuario(request.nmUsuario());
-        usuario.setNrCpf(request.nrCpf());
+        usuario.setNrCpf(cpf);
         usuario.setNrTelefone(request.nrTelefone());
         usuario.setDsEmail(request.dsEmail());
         usuario.setDsSenhaHash(passwordEncoder.encode(request.dsSenha()));
@@ -97,9 +97,9 @@ public class UsuarioService {
                 && usuarioRepository.existsByDsEmail(request.dsEmail())) {
             throw new ConflictException("Email já cadastrado: " + request.dsEmail());
         }
-        if (request.nrCpf() != null && !request.nrCpf().isBlank()
-                && !request.nrCpf().equals(usuario.getNrCpf())
-                && usuarioRepository.existsByNrCpf(request.nrCpf())) {
+        String cpf = normalizarCpf(request.nrCpf());
+        if (cpf != null && !cpf.equals(usuario.getNrCpf())
+                && usuarioRepository.existsByNrCpf(cpf)) {
             throw new ConflictException("CPF já cadastrado.");
         }
 
@@ -112,7 +112,7 @@ public class UsuarioService {
             .orElseThrow(() -> new ResourceNotFoundException("Perfil", 0L));
 
         usuario.setNmUsuario(request.nmUsuario());
-        usuario.setNrCpf(request.nrCpf());
+        usuario.setNrCpf(cpf);
         usuario.setNrTelefone(request.nrTelefone());
         usuario.setDsEmail(request.dsEmail());
         usuario.setPerfil(perfil);
@@ -162,6 +162,11 @@ public class UsuarioService {
         if (!alvo.getDsEmail().equals(caller.getUsername())) {
             throw new UnauthorizedException("Operador só pode acessar o próprio usuário.");
         }
+    }
+
+    private String normalizarCpf(String cpf) {
+        if (cpf == null || cpf.isBlank()) return null;
+        return cpf.replaceAll("[^0-9]", "");
     }
 
     private NomePerfil resolverNomePerfil(String nmPerfil) {
