@@ -159,8 +159,8 @@ Authorization: Bearer <token>
 
 ## Regras de Negócio
 
-- Abrigo não aceita novos ocupantes quando está no status `LOTADO` ou `INTERDITADO`
-- Status dos abrigos: `ATIVO` → `LOTADO` → `INTERDITADO` → `INATIVO`
+- Abrigo não aceita novos ocupantes quando está no status `LOTADO` ou `INTERDITADO` (a restrição real é capacidade, não o label)
+- Status dos abrigos: `ATIVO` ↔ `LOTADO` (reversível por saída/transferência) | `INTERDITADO` | `INATIVO` — a transição não é linear
 - Estoque com quantidade abaixo do mínimo gera `Alerta` automaticamente
 - Fluxo de solicitação: `ABERTA` → `EM_ANALISE` → `EM_ATENDIMENTO` → `CONCLUIDA`
 - Transferência só é permitida se o abrigo destino possui vagas disponíveis
@@ -190,7 +190,7 @@ src/main/java/br/com/fiap/vesta/
 src/main/resources/
 ├── application.yml
 ├── application-test.yml
-└── db/migration/    # Scripts Flyway (V6__create_tables, V7__seed_data, V8__fix_password_hashes)
+└── db/migration/    # Scripts Flyway (V6__create_tables, V7__seed_data, V8__fix_password_hashes, V9__alerta_add_id_recurso)
 ```
 
 ---
