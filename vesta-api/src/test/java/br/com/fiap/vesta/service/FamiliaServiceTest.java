@@ -64,6 +64,35 @@ class FamiliaServiceTest {
         verify(abrigoRepository).save(argThat(a -> a.getQtOcupacaoAtual() == 52));
     }
 
+    @Test
+    void acolhimento_queAtingeCapacidade_chamaGerarAlertaLotacao() {
+        abrigo.setQtOcupacaoAtual(99);
+        when(abrigoService.buscarPorId(1L)).thenReturn(abrigo);
+        when(familiaRepository.save(any())).thenAnswer(inv -> {
+            Familia f = inv.getArgument(0); f.setIdFamilia(1L); return f;
+        });
+        when(pessoaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(abrigoRepository.save(any())).thenReturn(abrigo);
+
+        familiaService.registrarAcolhimento(1L, criarAcolhimentoRequest(1));
+
+        verify(abrigoService).gerarAlertaLotacao(abrigo);
+    }
+
+    @Test
+    void acolhimento_queNaoAtingeCapacidade_naoGeraAlerta() {
+        when(abrigoService.buscarPorId(1L)).thenReturn(abrigo);
+        when(familiaRepository.save(any())).thenAnswer(inv -> {
+            Familia f = inv.getArgument(0); f.setIdFamilia(1L); return f;
+        });
+        when(pessoaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(abrigoRepository.save(any())).thenReturn(abrigo);
+
+        familiaService.registrarAcolhimento(1L, criarAcolhimentoRequest(1));
+
+        verify(abrigoService, never()).gerarAlertaLotacao(any());
+    }
+
     private br.com.fiap.vesta.dto.request.AcolhimentoRequest criarAcolhimentoRequest(int membros) {
         var lista = java.util.List.of(
             new br.com.fiap.vesta.dto.request.AcolhimentoRequest.MembroRequest("Pessoa 1", null, null, null),

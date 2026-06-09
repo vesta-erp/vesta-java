@@ -84,6 +84,10 @@ public class FamiliaService {
         }
         abrigoRepository.save(abrigo);
 
+        if (novaOcupacao >= abrigo.getQtCapacidadeMaxima()) {
+            abrigoService.gerarAlertaLotacao(abrigo);
+        }
+
         return toResponse(familia);
     }
 
