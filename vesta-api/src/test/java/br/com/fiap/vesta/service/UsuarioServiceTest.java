@@ -39,6 +39,11 @@ class UsuarioServiceTest {
             List.of(new SimpleGrantedAuthority("ROLE_GESTOR")));
     }
 
+    private UserDetails operadorUser() {
+        return new User("operador@vesta.com", "hash",
+            List.of(new SimpleGrantedAuthority("ROLE_OPERADOR")));
+    }
+
     private PerfilAcesso perfil(NomePerfil nome) {
         PerfilAcesso p = new PerfilAcesso();
         p.setNmPerfil(nome);
@@ -125,10 +130,171 @@ class UsuarioServiceTest {
         when(abrigoRepository.findById(1L)).thenReturn(Optional.of(new Abrigo()));
         when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        usuarioService.atualizar(1L, request);
+        usuarioService.atualizar(1L, request, adminUser());
 
         verify(passwordEncoder, never()).encode(any());
         assertThat(existente.getDsSenhaHash()).isEqualTo("$2a$hash-existente");
+    }
+
+    // ── T9: buscarPorId — controle de acesso ──────────────────────────────────
+
+    @Test
+    void buscarPorId_gestorBuscandoOProprio_retornaDados() {
+        Usuario gestor = new Usuario(); gestor.setDsEmail("gestor@vesta.com");
+        gestor.setPerfil(perfil(NomePerfil.GESTOR));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(gestor));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.buscarPorId(1L, gestorUser()));
+    }
+
+    @Test
+    void buscarPorId_gestorBuscandoOperador_retornaDados() {
+        Usuario operador = new Usuario(); operador.setDsEmail("op@vesta.com");
+        operador.setPerfil(perfil(NomePerfil.OPERADOR));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(operador));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.buscarPorId(2L, gestorUser()));
+    }
+
+    @Test
+    void buscarPorId_gestorBuscandoOutroGestor_lancaUnauthorized() {
+        Usuario outro = new Usuario(); outro.setDsEmail("outro@vesta.com");
+        outro.setPerfil(perfil(NomePerfil.GESTOR));
+        when(usuarioRepository.findById(3L)).thenReturn(Optional.of(outro));
+
+        assertThatThrownBy(() -> usuarioService.buscarPorId(3L, gestorUser()))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void buscarPorId_gestorBuscandoAdmin_lancaUnauthorized() {
+        Usuario admin = new Usuario(); admin.setDsEmail("admin2@vesta.com");
+        admin.setPerfil(perfil(NomePerfil.ADMIN));
+        when(usuarioRepository.findById(4L)).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> usuarioService.buscarPorId(4L, gestorUser()))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void buscarPorId_operadorBuscandoOProprio_retornaDados() {
+        Usuario operador = new Usuario(); operador.setDsEmail("operador@vesta.com");
+        operador.setPerfil(perfil(NomePerfil.OPERADOR));
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(operador));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.buscarPorId(5L, operadorUser()));
+    }
+
+    @Test
+    void buscarPorId_operadorBuscandoOutro_lancaUnauthorized() {
+        Usuario outro = new Usuario(); outro.setDsEmail("outro@vesta.com");
+        outro.setPerfil(perfil(NomePerfil.OPERADOR));
+        when(usuarioRepository.findById(6L)).thenReturn(Optional.of(outro));
+
+        assertThatThrownBy(() -> usuarioService.buscarPorId(6L, operadorUser()))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    // ── T10: atualizar — controle de acesso ───────────────────────────────────
+
+    @Test
+    void atualizar_gestorAtualizandoOProprio_ePermitido() {
+        Usuario gestor = new Usuario(); gestor.setIdUsuario(1L);
+        gestor.setDsEmail("gestor@vesta.com"); gestor.setDsSenhaHash("hash");
+        gestor.setPerfil(perfil(NomePerfil.GESTOR));
+        var req = new UsuarioRequest("Gestor", null, null, "gestor@vesta.com", null, "GESTOR", null);
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(gestor));
+        when(perfilRepository.findByNmPerfil(NomePerfil.GESTOR)).thenReturn(Optional.of(perfil(NomePerfil.GESTOR)));
+        when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.atualizar(1L, req, gestorUser()));
+    }
+
+    @Test
+    void atualizar_gestorAtualizandoOperador_ePermitido() {
+        Usuario operador = new Usuario(); operador.setIdUsuario(2L);
+        operador.setDsEmail("op@vesta.com"); operador.setDsSenhaHash("hash");
+        operador.setPerfil(perfil(NomePerfil.OPERADOR));
+        var req = new UsuarioRequest("Op", null, null, "op@vesta.com", null, "OPERADOR", 1L);
+
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(operador));
+        when(perfilRepository.findByNmPerfil(NomePerfil.OPERADOR)).thenReturn(Optional.of(perfil(NomePerfil.OPERADOR)));
+        when(abrigoRepository.findById(1L)).thenReturn(Optional.of(new Abrigo()));
+        when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.atualizar(2L, req, gestorUser()));
+    }
+
+    @Test
+    void atualizar_gestorAtualizandoOutroGestor_lancaUnauthorized() {
+        Usuario outro = new Usuario(); outro.setDsEmail("outro@vesta.com");
+        outro.setPerfil(perfil(NomePerfil.GESTOR));
+        when(usuarioRepository.findById(3L)).thenReturn(Optional.of(outro));
+
+        var req = new UsuarioRequest("Outro", null, null, "outro@vesta.com", null, "GESTOR", null);
+        assertThatThrownBy(() -> usuarioService.atualizar(3L, req, gestorUser()))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void atualizar_operadorAtualizandoOProprio_ePermitido() {
+        Usuario operador = new Usuario(); operador.setIdUsuario(4L);
+        operador.setDsEmail("operador@vesta.com"); operador.setDsSenhaHash("hash");
+        operador.setPerfil(perfil(NomePerfil.OPERADOR));
+        var req = new UsuarioRequest("Op", null, null, "operador@vesta.com", null, "OPERADOR", 1L);
+
+        when(usuarioRepository.findById(4L)).thenReturn(Optional.of(operador));
+        when(perfilRepository.findByNmPerfil(NomePerfil.OPERADOR)).thenReturn(Optional.of(perfil(NomePerfil.OPERADOR)));
+        when(abrigoRepository.findById(1L)).thenReturn(Optional.of(new Abrigo()));
+        when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.atualizar(4L, req, operadorUser()));
+    }
+
+    @Test
+    void atualizar_operadorAtualizandoOutro_lancaUnauthorized() {
+        Usuario outro = new Usuario(); outro.setDsEmail("outro@vesta.com");
+        outro.setPerfil(perfil(NomePerfil.OPERADOR));
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(outro));
+
+        var req = new UsuarioRequest("Outro", null, null, "outro@vesta.com", null, "OPERADOR", null);
+        assertThatThrownBy(() -> usuarioService.atualizar(5L, req, operadorUser()))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    // ── T11: desativar — controle de acesso do GESTOR ─────────────────────────
+
+    @Test
+    void desativar_gestorDesativandoOperador_ePermitido() {
+        Usuario operador = new Usuario(); operador.setIdUsuario(1L);
+        operador.setDsEmail("op@vesta.com");
+        operador.setPerfil(perfil(NomePerfil.OPERADOR));
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(operador));
+
+        assertThatNoException().isThrownBy(() -> usuarioService.desativar(1L, gestorUser()));
+        verify(usuarioRepository).save(argThat(u -> "N".equals(u.getStAtivo())));
+    }
+
+    @Test
+    void desativar_gestorDesativandoOutroGestor_lancaUnauthorized() {
+        Usuario outroGestor = new Usuario(); outroGestor.setDsEmail("outro@vesta.com");
+        outroGestor.setPerfil(perfil(NomePerfil.GESTOR));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(outroGestor));
+
+        assertThatThrownBy(() -> usuarioService.desativar(2L, gestorUser()))
+            .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void desativar_gestorDesativandoAdmin_lancaUnauthorized() {
+        Usuario admin = new Usuario(); admin.setDsEmail("admin@vesta.com");
+        admin.setPerfil(perfil(NomePerfil.ADMIN));
+        when(usuarioRepository.findById(3L)).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> usuarioService.desativar(3L, gestorUser()))
+            .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test

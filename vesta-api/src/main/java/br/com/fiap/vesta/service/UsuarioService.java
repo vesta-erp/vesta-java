@@ -80,15 +80,18 @@ public class UsuarioService {
         return usuarioRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public UsuarioResponse buscarPorId(Long id) {
-        return toResponse(usuarioRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id)));
+    public UsuarioResponse buscarPorId(Long id, UserDetails caller) {
+        Usuario usuario = usuarioRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+        verificarAcessoAoUsuario(usuario, caller);
+        return toResponse(usuario);
     }
 
     @Transactional
-    public UsuarioResponse atualizar(Long id, UsuarioRequest request) {
+    public UsuarioResponse atualizar(Long id, UsuarioRequest request, UserDetails caller) {
         Usuario usuario = usuarioRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+        verificarAcessoAoUsuario(usuario, caller);
 
         if (!usuario.getDsEmail().equals(request.dsEmail())
                 && usuarioRepository.existsByDsEmail(request.dsEmail())) {
@@ -131,11 +134,34 @@ public class UsuarioService {
     public void desativar(Long id, UserDetails caller) {
         Usuario usuario = usuarioRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
-        if (usuario.getDsEmail().equals(caller.getUsername())) {
+        if (usuario.getDsEmail().equals(caller.getUsername())
+                && usuario.getPerfil().getNmPerfil() == NomePerfil.ADMIN) {
             throw new BusinessRuleException("Admin não pode desativar a si mesmo.");
         }
+        verificarAcessoAoUsuario(usuario, caller);
         usuario.setStAtivo("N");
         usuarioRepository.save(usuario);
+    }
+
+    private void verificarAcessoAoUsuario(Usuario alvo, UserDetails caller) {
+        boolean isAdmin = caller.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isAdmin) return;
+
+        boolean isGestor = caller.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_GESTOR"));
+        if (isGestor) {
+            boolean isSelf = alvo.getDsEmail().equals(caller.getUsername());
+            boolean targetIsOperador = alvo.getPerfil().getNmPerfil() == NomePerfil.OPERADOR;
+            if (!isSelf && !targetIsOperador) {
+                throw new UnauthorizedException("Gestor não tem acesso a este usuário.");
+            }
+            return;
+        }
+
+        if (!alvo.getDsEmail().equals(caller.getUsername())) {
+            throw new UnauthorizedException("Operador só pode acessar o próprio usuário.");
+        }
     }
 
     private NomePerfil resolverNomePerfil(String nmPerfil) {

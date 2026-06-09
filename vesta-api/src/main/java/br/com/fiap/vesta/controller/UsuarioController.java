@@ -45,22 +45,24 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','GESTOR','OPERADOR')")
     @Operation(summary = "Buscar usuário por ID")
-    public ResponseEntity<UsuarioResponse> buscar(@PathVariable Long id) {
-        return ResponseEntity.ok(usuarioService.buscarPorId(id));
+    public ResponseEntity<UsuarioResponse> buscar(@PathVariable Long id,
+                                                   @AuthenticationPrincipal UserDetails currentUser) {
+        return ResponseEntity.ok(usuarioService.buscarPorId(id, currentUser));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','GESTOR','OPERADOR')")
     @Operation(summary = "Atualizar usuário")
     public ResponseEntity<UsuarioResponse> atualizar(@PathVariable Long id,
-                                                      @Valid @RequestBody UsuarioRequest request) {
-        return ResponseEntity.ok(usuarioService.atualizar(id, request));
+                                                      @Valid @RequestBody UsuarioRequest request,
+                                                      @AuthenticationPrincipal UserDetails currentUser) {
+        return ResponseEntity.ok(usuarioService.atualizar(id, request, currentUser));
     }
 
     @PatchMapping("/{id}/desativar")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
     @Operation(summary = "Desativar usuário")
     public ResponseEntity<Void> desativar(@PathVariable Long id,
                                            @AuthenticationPrincipal UserDetails currentUser) {
