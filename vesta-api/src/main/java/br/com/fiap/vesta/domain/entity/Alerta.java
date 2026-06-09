@@ -27,6 +27,10 @@ public class Alerta {
     @Column(name = "st_status", nullable = false, length = 20)
     private String stStatus = "ATIVO";
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_recurso")
+    private Recurso recurso;
+
     @Column(name = "dt_geracao", nullable = false, updatable = false)
     private LocalDateTime dtGeracao;
 
@@ -42,6 +46,8 @@ public class Alerta {
 
     public Long getIdAlerta() { return idAlerta; }
     public void setIdAlerta(Long idAlerta) { this.idAlerta = idAlerta; }
+    public Recurso getRecurso() { return recurso; }
+    public void setRecurso(Recurso recurso) { this.recurso = recurso; }
     public Abrigo getAbrigo() { return abrigo; }
     public void setAbrigo(Abrigo abrigo) { this.abrigo = abrigo; }
     public TipoAlerta getTpAlerta() { return tpAlerta; }

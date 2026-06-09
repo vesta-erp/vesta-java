@@ -41,7 +41,8 @@ public class AlertaService {
             a.getIdAlerta(),
             a.getAbrigo().getIdAbrigo(), a.getAbrigo().getNmAbrigo(),
             a.getTpAlerta(), a.getDsMensagem(), a.getStStatus(),
-            a.getDtGeracao(), a.getDtResolucao()
+            a.getDtGeracao(), a.getDtResolucao(),
+            a.getRecurso() != null ? a.getRecurso().getIdRecurso() : null
         );
     }
 }

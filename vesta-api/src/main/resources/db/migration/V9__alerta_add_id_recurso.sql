@@ -1,0 +1,5 @@
+ALTER TABLE TB_ALERTA ADD id_recurso NUMBER(19);
+
+ALTER TABLE TB_ALERTA
+    ADD CONSTRAINT fk_alerta_recurso
+    FOREIGN KEY (id_recurso) REFERENCES TB_RECURSO (id_recurso);

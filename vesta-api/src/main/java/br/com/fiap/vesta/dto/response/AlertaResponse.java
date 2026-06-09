@@ -11,5 +11,6 @@ public record AlertaResponse(
     String dsMensagem,
     String stStatus,
     LocalDateTime dtGeracao,
-    LocalDateTime dtResolucao
+    LocalDateTime dtResolucao,
+    Long idRecurso
 ) {}

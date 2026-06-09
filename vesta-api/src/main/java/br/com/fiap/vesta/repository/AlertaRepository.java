@@ -10,4 +10,6 @@ public interface AlertaRepository extends JpaRepository<Alerta, Long> {
     List<Alerta> findByAbrigoIdAbrigoAndStStatus(Long idAbrigo, String stStatus);
     List<Alerta> findByStStatus(String stStatus);
     Optional<Alerta> findByAbrigoIdAbrigoAndTpAlertaAndStStatus(Long idAbrigo, TipoAlerta tipo, String status);
+    Optional<Alerta> findByAbrigoIdAbrigoAndTpAlertaAndRecursoIdRecursoAndStStatus(
+            Long idAbrigo, TipoAlerta tipo, Long idRecurso, String status);
 }

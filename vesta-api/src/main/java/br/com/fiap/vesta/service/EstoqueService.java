@@ -121,11 +121,13 @@ public class EstoqueService {
     private void verificarEstoqueCritico(Abrigo abrigo, EstoqueAbrigo estoque, Recurso recurso) {
         if (estoque.isAbaixoMinimo()) {
             boolean jaExiste = alertaRepository
-                .findByAbrigoIdAbrigoAndTpAlertaAndStStatus(abrigo.getIdAbrigo(), TipoAlerta.ESTOQUE_CRITICO, "ATIVO")
+                .findByAbrigoIdAbrigoAndTpAlertaAndRecursoIdRecursoAndStStatus(
+                    abrigo.getIdAbrigo(), TipoAlerta.ESTOQUE_CRITICO, recurso.getIdRecurso(), "ATIVO")
                 .isPresent();
             if (!jaExiste) {
                 Alerta alerta = new Alerta();
                 alerta.setAbrigo(abrigo);
+                alerta.setRecurso(recurso);
                 alerta.setTpAlerta(TipoAlerta.ESTOQUE_CRITICO);
                 alerta.setDsMensagem("Estoque crítico: " + recurso.getNmRecurso()
                     + " abaixo do mínimo (" + estoque.getQtAtual() + "/" + estoque.getQtMinima() + ")");
