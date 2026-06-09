@@ -108,6 +108,9 @@ public class TransferenciaService {
         pessoas.forEach(p -> { p.setAbrigo(destino); pessoaRepository.save(p); });
         abrigoRepository.save(origem);
         abrigoRepository.save(destino);
+        if (destino.getStStatus() == StatusAbrigo.LOTADO) {
+            abrigoService.gerarAlertaLotacao(destino);
+        }
 
         t.setStStatus(StatusTransferencia.CONCLUIDA);
         t.setDtConclusao(LocalDateTime.now());
