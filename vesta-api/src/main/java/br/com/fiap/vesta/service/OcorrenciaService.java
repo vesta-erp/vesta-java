@@ -80,11 +80,17 @@ public class OcorrenciaService {
     }
 
     private void gerarAlertaOcorrenciaCritica(Abrigo abrigo, String titulo) {
-        Alerta alerta = new Alerta();
-        alerta.setAbrigo(abrigo);
-        alerta.setTpAlerta(TipoAlerta.OCORRENCIA_CRITICA);
-        alerta.setDsMensagem("Ocorrência crítica registrada: " + titulo);
-        alertaRepository.save(alerta);
+        boolean jaExiste = alertaRepository
+            .findByAbrigoIdAbrigoAndTpAlertaAndStStatus(
+                abrigo.getIdAbrigo(), TipoAlerta.OCORRENCIA_CRITICA, "ATIVO")
+            .isPresent();
+        if (!jaExiste) {
+            Alerta alerta = new Alerta();
+            alerta.setAbrigo(abrigo);
+            alerta.setTpAlerta(TipoAlerta.OCORRENCIA_CRITICA);
+            alerta.setDsMensagem("Ocorrência crítica registrada: " + titulo);
+            alertaRepository.save(alerta);
+        }
     }
 
     private OcorrenciaResponse toResponse(Ocorrencia o) {

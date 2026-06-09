@@ -190,7 +190,7 @@ src/main/java/br/com/fiap/vesta/
 src/main/resources/
 ├── application.yml
 ├── application-test.yml
-└── db/migration/    # Scripts Flyway (V6__create_tables, V7__seed_data, V8__fix_password_hashes, V9__alerta_add_id_recurso)
+└── db/migration/    # Scripts Flyway (V6__create_tables, V7__seed_data, V8__fix_password_hashes, V9__alerta_add_id_recurso, V10__usuario_add_cpf_telefone, V11__usuario_add_id_regiao)
 ```
 
 ---

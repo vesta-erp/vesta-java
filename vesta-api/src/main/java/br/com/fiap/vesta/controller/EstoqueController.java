@@ -9,6 +9,9 @@ import br.com.fiap.vesta.service.EstoqueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,31 +34,48 @@ public class EstoqueController {
 
     @GetMapping
     @Operation(summary = "Listar estoque do abrigo")
-    public ResponseEntity<List<EstoqueResponse>> listar(@PathVariable Long idAbrigo) {
-        return ResponseEntity.ok(estoqueService.listarPorAbrigo(idAbrigo));
+    public ResponseEntity<CollectionModel<EntityModel<EstoqueResponse>>> listar(@PathVariable Long idAbrigo) {
+        List<EntityModel<EstoqueResponse>> modelos = estoqueService.listarPorAbrigo(idAbrigo)
+            .stream()
+            .map(e -> EntityModel.of(e,
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).listar(idAbrigo)).withSelfRel(),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).criticos(idAbrigo)).withRel("criticos")))
+            .toList();
+        return ResponseEntity.ok(CollectionModel.of(modelos,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).listar(idAbrigo)).withSelfRel()));
     }
 
     @GetMapping("/criticos")
     @Operation(summary = "Listar itens abaixo do estoque mínimo")
-    public ResponseEntity<List<EstoqueResponse>> criticos(@PathVariable Long idAbrigo) {
-        return ResponseEntity.ok(estoqueService.listarAbaixoMinimo(idAbrigo));
+    public ResponseEntity<CollectionModel<EntityModel<EstoqueResponse>>> criticos(@PathVariable Long idAbrigo) {
+        List<EntityModel<EstoqueResponse>> modelos = estoqueService.listarAbaixoMinimo(idAbrigo)
+            .stream()
+            .map(e -> EntityModel.of(e,
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).listar(idAbrigo)).withRel("estoque")))
+            .toList();
+        return ResponseEntity.ok(CollectionModel.of(modelos,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).criticos(idAbrigo)).withSelfRel()));
     }
 
     @PostMapping("/movimentacao")
     @Operation(summary = "Registrar entrada, saída ou ajuste de estoque")
-    public ResponseEntity<MovimentacaoResponse> movimentar(@PathVariable Long idAbrigo,
-                                                            @Valid @RequestBody MovimentacaoRequest request,
-                                                            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<EntityModel<MovimentacaoResponse>> movimentar(@PathVariable Long idAbrigo,
+                                                                        @Valid @RequestBody MovimentacaoRequest request,
+                                                                        @AuthenticationPrincipal UserDetails userDetails) {
         Long idUsuario = usuarioRepository.findByDsEmail(userDetails.getUsername())
             .map(u -> u.getIdUsuario())
             .orElseThrow();
-        return ResponseEntity.ok(estoqueService.registrarMovimentacao(idAbrigo, idUsuario, request));
+        MovimentacaoResponse resp = estoqueService.registrarMovimentacao(idAbrigo, idUsuario, request);
+        return ResponseEntity.ok(EntityModel.of(resp,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).listar(idAbrigo)).withRel("estoque")));
     }
 
     @PatchMapping("/minimo")
     @Operation(summary = "Definir quantidade mínima de um recurso")
-    public ResponseEntity<EstoqueResponse> definirMinimo(@PathVariable Long idAbrigo,
-                                                          @Valid @RequestBody EstoqueMinRequest request) {
-        return ResponseEntity.ok(estoqueService.definirMinimo(idAbrigo, request));
+    public ResponseEntity<EntityModel<EstoqueResponse>> definirMinimo(@PathVariable Long idAbrigo,
+                                                                      @Valid @RequestBody EstoqueMinRequest request) {
+        EstoqueResponse resp = estoqueService.definirMinimo(idAbrigo, request);
+        return ResponseEntity.ok(EntityModel.of(resp,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EstoqueController.class).listar(idAbrigo)).withRel("estoque")));
     }
 }

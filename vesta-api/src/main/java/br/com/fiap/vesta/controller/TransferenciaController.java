@@ -7,6 +7,9 @@ import br.com.fiap.vesta.service.TransferenciaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,31 +33,46 @@ public class TransferenciaController {
 
     @GetMapping("/abrigo/{idAbrigo}")
     @Operation(summary = "Listar transferências de um abrigo (origem ou destino)")
-    public ResponseEntity<List<TransferenciaResponse>> listar(@PathVariable Long idAbrigo) {
-        return ResponseEntity.ok(transferenciaService.listarPorAbrigo(idAbrigo));
+    public ResponseEntity<CollectionModel<EntityModel<TransferenciaResponse>>> listar(@PathVariable Long idAbrigo) {
+        List<EntityModel<TransferenciaResponse>> modelos = transferenciaService.listarPorAbrigo(idAbrigo)
+            .stream()
+            .map(t -> EntityModel.of(t,
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).aprovar(t.idTransferencia())).withRel("aprovar"),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).concluir(t.idTransferencia())).withRel("concluir")))
+            .toList();
+        return ResponseEntity.ok(CollectionModel.of(modelos,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).listar(idAbrigo)).withSelfRel()));
     }
 
     @PostMapping("/abrigo/{idAbrigo}")
     @Operation(summary = "Solicitar transferência de família")
-    public ResponseEntity<TransferenciaResponse> solicitar(@PathVariable Long idAbrigo,
-                                                            @Valid @RequestBody TransferenciaRequest req,
-                                                            @AuthenticationPrincipal UserDetails user) {
+    public ResponseEntity<EntityModel<TransferenciaResponse>> solicitar(@PathVariable Long idAbrigo,
+                                                                        @Valid @RequestBody TransferenciaRequest req,
+                                                                        @AuthenticationPrincipal UserDetails user) {
         Long idUsuario = usuarioRepository.findByDsEmail(user.getUsername())
             .map(u -> u.getIdUsuario()).orElseThrow();
-        return ResponseEntity.ok(transferenciaService.solicitar(idAbrigo, idUsuario, req));
+        TransferenciaResponse resp = transferenciaService.solicitar(idAbrigo, idUsuario, req);
+        return ResponseEntity.ok(EntityModel.of(resp,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).listar(idAbrigo)).withRel("transferencias"),
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).aprovar(resp.idTransferencia())).withRel("aprovar")));
     }
 
     @PatchMapping("/{id}/aprovar")
     @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
     @Operation(summary = "Aprovar transferência pendente")
-    public ResponseEntity<TransferenciaResponse> aprovar(@PathVariable Long id) {
-        return ResponseEntity.ok(transferenciaService.aprovar(id));
+    public ResponseEntity<EntityModel<TransferenciaResponse>> aprovar(@PathVariable Long id) {
+        TransferenciaResponse resp = transferenciaService.aprovar(id);
+        return ResponseEntity.ok(EntityModel.of(resp,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).aprovar(id)).withSelfRel(),
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).concluir(id)).withRel("concluir")));
     }
 
     @PatchMapping("/{id}/concluir")
     @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
     @Operation(summary = "Concluir transferência aprovada (movimenta família e ajusta ocupação)")
-    public ResponseEntity<TransferenciaResponse> concluir(@PathVariable Long id) {
-        return ResponseEntity.ok(transferenciaService.concluir(id));
+    public ResponseEntity<EntityModel<TransferenciaResponse>> concluir(@PathVariable Long id) {
+        TransferenciaResponse resp = transferenciaService.concluir(id);
+        return ResponseEntity.ok(EntityModel.of(resp,
+            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(TransferenciaController.class).concluir(id)).withSelfRel()));
     }
 }
