@@ -25,6 +25,7 @@ class EstoqueServiceTest {
     @Mock UsuarioRepository usuarioRepository;
     @Mock SolicitacaoRecursoRepository solicitacaoRepository;
     @Mock AlertaRepository alertaRepository;
+    @Mock IsolamentoService isolamentoService;
 
     @InjectMocks EstoqueService estoqueService;
 

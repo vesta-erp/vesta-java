@@ -22,6 +22,7 @@ class SolicitacaoServiceTest {
     @Mock RecursoRepository recursoRepository;
     @Mock AbrigoService abrigoService;
     @Mock UsuarioRepository usuarioRepository;
+    @Mock IsolamentoService isolamentoService;
 
     @InjectMocks SolicitacaoService solicitacaoService;
 

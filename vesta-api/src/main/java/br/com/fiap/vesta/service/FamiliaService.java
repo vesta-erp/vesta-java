@@ -22,17 +22,20 @@ public class FamiliaService {
     private final AbrigoRepository abrigoRepository;
     private final AbrigoService abrigoService;
     private final AlertaRepository alertaRepository;
+    private final IsolamentoService isolamentoService;
 
     public FamiliaService(FamiliaRepository familiaRepository,
                           PessoaAbrigadaRepository pessoaRepository,
                           AbrigoRepository abrigoRepository,
                           AbrigoService abrigoService,
-                          AlertaRepository alertaRepository) {
+                          AlertaRepository alertaRepository,
+                          IsolamentoService isolamentoService) {
         this.familiaRepository = familiaRepository;
         this.pessoaRepository = pessoaRepository;
         this.abrigoRepository = abrigoRepository;
         this.abrigoService = abrigoService;
         this.alertaRepository = alertaRepository;
+        this.isolamentoService = isolamentoService;
     }
 
     public List<FamiliaResponse> listarPorAbrigo(Long idAbrigo) {
@@ -52,6 +55,7 @@ public class FamiliaService {
 
     @Transactional
     public FamiliaResponse registrarAcolhimento(Long idAbrigo, AcolhimentoRequest request) {
+        isolamentoService.verificarAcessoAbrigo(idAbrigo);
         Abrigo abrigo = abrigoService.buscarPorId(idAbrigo);
 
         if (abrigo.getStStatus() == StatusAbrigo.INTERDITADO ||
@@ -99,6 +103,7 @@ public class FamiliaService {
     public void registrarSaida(Long idFamilia) {
         Familia familia = familiaRepository.findById(idFamilia)
             .orElseThrow(() -> new ResourceNotFoundException("Familia", idFamilia));
+        isolamentoService.verificarAcessoAbrigo(familia.getAbrigo().getIdAbrigo());
         if (familia.getDtSaida() != null) {
             throw new BusinessRuleException("Família já registrou saída.");
         }

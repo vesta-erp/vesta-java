@@ -23,6 +23,7 @@ class FamiliaServiceTest {
     @Mock AbrigoRepository abrigoRepository;
     @Mock AbrigoService abrigoService;
     @Mock AlertaRepository alertaRepository;
+    @Mock IsolamentoService isolamentoService;
 
     @InjectMocks FamiliaService familiaService;
 

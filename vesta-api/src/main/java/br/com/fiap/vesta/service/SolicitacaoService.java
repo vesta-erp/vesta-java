@@ -28,15 +28,18 @@ public class SolicitacaoService {
     private final RecursoRepository recursoRepository;
     private final AbrigoService abrigoService;
     private final UsuarioRepository usuarioRepository;
+    private final IsolamentoService isolamentoService;
 
     public SolicitacaoService(SolicitacaoRecursoRepository solicitacaoRepository,
                                RecursoRepository recursoRepository,
                                AbrigoService abrigoService,
-                               UsuarioRepository usuarioRepository) {
+                               UsuarioRepository usuarioRepository,
+                               IsolamentoService isolamentoService) {
         this.solicitacaoRepository = solicitacaoRepository;
         this.recursoRepository = recursoRepository;
         this.abrigoService = abrigoService;
         this.usuarioRepository = usuarioRepository;
+        this.isolamentoService = isolamentoService;
     }
 
     public List<SolicitacaoResponse> listarPorAbrigo(Long idAbrigo) {
@@ -57,6 +60,7 @@ public class SolicitacaoService {
 
     @Transactional
     public SolicitacaoResponse abrir(Long idAbrigo, Long idUsuario, SolicitacaoRequest request) {
+        isolamentoService.verificarAcessoAbrigo(idAbrigo);
         Abrigo abrigo = abrigoService.buscarPorId(idAbrigo);
         Recurso recurso = recursoRepository.findById(request.idRecurso())
             .orElseThrow(() -> new ResourceNotFoundException("Recurso", request.idRecurso()));
