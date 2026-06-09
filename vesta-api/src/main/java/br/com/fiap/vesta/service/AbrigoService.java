@@ -20,15 +20,18 @@ public class AbrigoService {
     private final RegiaoRepository regiaoRepository;
     private final InstituicaoRepository instituicaoRepository;
     private final AlertaRepository alertaRepository;
+    private final IsolamentoService isolamentoService;
 
     public AbrigoService(AbrigoRepository abrigoRepository,
                          RegiaoRepository regiaoRepository,
                          InstituicaoRepository instituicaoRepository,
-                         AlertaRepository alertaRepository) {
+                         AlertaRepository alertaRepository,
+                         IsolamentoService isolamentoService) {
         this.abrigoRepository = abrigoRepository;
         this.regiaoRepository = regiaoRepository;
         this.instituicaoRepository = instituicaoRepository;
         this.alertaRepository = alertaRepository;
+        this.isolamentoService = isolamentoService;
     }
 
     @Cacheable("abrigos")
@@ -87,6 +90,9 @@ public class AbrigoService {
     @CacheEvict(value = "abrigos", allEntries = true)
     public void atualizarStatus(Long id, StatusAbrigo novoStatus) {
         Abrigo abrigo = buscarPorId(id);
+        if (abrigo.getRegiao() != null) {
+            isolamentoService.verificarAcessoRegiao(abrigo.getRegiao().getIdRegiao());
+        }
         abrigo.setStStatus(novoStatus);
         abrigoRepository.save(abrigo);
 

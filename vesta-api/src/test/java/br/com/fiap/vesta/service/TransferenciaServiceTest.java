@@ -23,6 +23,7 @@ class TransferenciaServiceTest {
     @Mock AbrigoRepository abrigoRepository;
     @Mock AbrigoService abrigoService;
     @Mock UsuarioRepository usuarioRepository;
+    @Mock IsolamentoService isolamentoService;
 
     @InjectMocks TransferenciaService transferenciaService;
 

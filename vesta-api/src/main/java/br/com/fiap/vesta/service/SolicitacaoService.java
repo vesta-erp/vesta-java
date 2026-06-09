@@ -82,6 +82,10 @@ public class SolicitacaoService {
         SolicitacaoRecurso sol = solicitacaoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("SolicitacaoRecurso", id));
 
+        if (sol.getAbrigo().getRegiao() != null) {
+            isolamentoService.verificarAcessoRegiao(sol.getAbrigo().getRegiao().getIdRegiao());
+        }
+
         List<StatusSolicitacao> proximas = TRANSICOES_VALIDAS.getOrDefault(sol.getStStatus(), List.of());
         if (!proximas.contains(request.novoStatus())) {
             throw new BusinessRuleException("Transição inválida: " + sol.getStStatus()

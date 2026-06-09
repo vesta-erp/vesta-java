@@ -29,6 +29,10 @@ public class Usuario {
     @JoinColumn(name = "id_abrigo")
     private Abrigo abrigo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_regiao")
+    private Regiao regiao;
+
     @Column(name = "nr_cpf", length = 14, unique = true)
     private String nrCpf;
 
@@ -64,6 +68,8 @@ public class Usuario {
     public void setNrCpf(String nrCpf) { this.nrCpf = nrCpf; }
     public String getNrTelefone() { return nrTelefone; }
     public void setNrTelefone(String nrTelefone) { this.nrTelefone = nrTelefone; }
+    public Regiao getRegiao() { return regiao; }
+    public void setRegiao(Regiao regiao) { this.regiao = regiao; }
     public String getStAtivo() { return stAtivo; }
     public void setStAtivo(String stAtivo) { this.stAtivo = stAtivo; }
     public LocalDateTime getDtCriacao() { return dtCriacao; }

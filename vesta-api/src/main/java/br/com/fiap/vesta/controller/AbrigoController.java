@@ -4,6 +4,7 @@ import br.com.fiap.vesta.domain.enums.StatusAbrigo;
 import br.com.fiap.vesta.dto.request.AbrigoRequest;
 import br.com.fiap.vesta.dto.response.AbrigoResponse;
 import br.com.fiap.vesta.service.AbrigoService;
+import br.com.fiap.vesta.service.IsolamentoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,17 +23,22 @@ import java.util.List;
 public class AbrigoController {
 
     private final AbrigoService abrigoService;
+    private final IsolamentoService isolamentoService;
 
-    public AbrigoController(AbrigoService abrigoService) {
+    public AbrigoController(AbrigoService abrigoService, IsolamentoService isolamentoService) {
         this.abrigoService = abrigoService;
+        this.isolamentoService = isolamentoService;
     }
 
     @GetMapping
     @Operation(summary = "Listar todos os abrigos")
     public ResponseEntity<CollectionModel<EntityModel<AbrigoResponse>>> listar(
             @RequestParam(required = false) Long idRegiao) {
-        List<AbrigoResponse> dados = idRegiao != null
-            ? abrigoService.listarPorRegiao(idRegiao)
+        Long regiaoFiltro = isolamentoService.isGestor()
+            ? isolamentoService.getIdRegiaoGestor()
+            : idRegiao;
+        List<AbrigoResponse> dados = regiaoFiltro != null
+            ? abrigoService.listarPorRegiao(regiaoFiltro)
             : abrigoService.listarTodos();
         List<EntityModel<AbrigoResponse>> modelos = dados.stream()
             .map(a -> EntityModel.of(a,

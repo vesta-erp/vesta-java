@@ -22,6 +22,7 @@ class AbrigoServiceTest {
     @Mock RegiaoRepository regiaoRepository;
     @Mock InstituicaoRepository instituicaoRepository;
     @Mock AlertaRepository alertaRepository;
+    @Mock IsolamentoService isolamentoService;
 
     @InjectMocks AbrigoService abrigoService;
 
