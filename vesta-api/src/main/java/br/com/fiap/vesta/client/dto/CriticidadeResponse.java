@@ -4,7 +4,7 @@ import java.util.List;
 
 public record CriticidadeResponse(
     Long idAbrigo,
-    int score,
+    double score,
     String nivel,
     String justificativa,
     List<String> recomendacoes

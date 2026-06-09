@@ -67,7 +67,8 @@ public class IndicadorService {
             a.getStStatus(),
             a.getQtCapacidadeMaxima(), a.getQtOcupacaoAtual(),
             taxaOcupacao, itensAbaixo, ocorrenciasAbertas,
-            nivelCriticidade, descricao
+            nivelCriticidade, descricao,
+            null, null, null, null
         );
     }
 }

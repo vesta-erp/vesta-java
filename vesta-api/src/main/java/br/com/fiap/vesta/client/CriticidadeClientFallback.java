@@ -21,7 +21,7 @@ public class CriticidadeClientFallback implements CriticidadeClient {
     @Override
     public CriticidadeResponse buscarCriticidade(Long id) {
         log.warn("[Criticidade] Serviço .NET indisponível para abrigo {} — retornando fallback", id);
-        return new CriticidadeResponse(id, 0, "INDISPONIVEL",
+        return new CriticidadeResponse(id, 0.0, "INDISPONIVEL",
             "Serviço .NET temporariamente indisponível", Collections.emptyList());
     }
 }
