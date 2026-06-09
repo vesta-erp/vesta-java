@@ -10,7 +10,8 @@ import java.util.List;
 @FeignClient(
     name = "dotnet-criticidade",
     url = "${vesta.dotnet-service.url}",
-    configuration = FeignConfig.class
+    configuration = FeignConfig.class,
+    fallback = CriticidadeClientFallback.class
 )
 public interface CriticidadeClient {
 

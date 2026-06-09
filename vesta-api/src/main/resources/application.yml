@@ -23,6 +23,10 @@ spring:
     type: caffeine
     caffeine:
       spec: maximumSize=500,expireAfterWrite=300s
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
   ai:
     azure:
       openai:

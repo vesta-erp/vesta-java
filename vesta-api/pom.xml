@@ -120,6 +120,11 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+        <!-- Circuit Breaker para fallback do Feign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+        </dependency>
         <!-- Spring AI - Azure OpenAI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
