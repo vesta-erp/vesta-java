@@ -31,9 +31,9 @@ public class AuthService {
         );
         UserDetails userDetails = (UserDetails) auth.getPrincipal();
         String token = jwtTokenProvider.generateToken(userDetails);
-        String perfil = usuarioRepository.findByDsEmail(request.email())
-            .map(u -> u.getPerfil().getNmPerfil().name())
-            .orElse("OPERADOR");
-        return AuthResponse.of(token, request.email(), perfil);
+        var usuario = usuarioRepository.findByDsEmail(request.email());
+        String perfil = usuario.map(u -> u.getPerfil().getNmPerfil().name()).orElse("OPERADOR");
+        String nmUsuario = usuario.map(u -> u.getNmUsuario()).orElse("");
+        return AuthResponse.of(token, request.email(), perfil, nmUsuario);
     }
 }

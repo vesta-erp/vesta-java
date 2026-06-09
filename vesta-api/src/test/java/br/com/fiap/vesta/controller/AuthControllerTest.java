@@ -34,7 +34,7 @@ class AuthControllerTest {
     @Test
     void login_validCredentials_returns200WithToken() throws Exception {
         LoginRequest req = new LoginRequest("admin@vesta.gov.br", "senha123");
-        AuthResponse resp = AuthResponse.of("jwt-token-here", "admin@vesta.gov.br", "ADMIN");
+        AuthResponse resp = AuthResponse.of("jwt-token-here", "admin@vesta.gov.br", "ADMIN", "Carlos Admin");
         when(authService.login(any())).thenReturn(resp);
 
         mockMvc.perform(post("/api/auth/login")
