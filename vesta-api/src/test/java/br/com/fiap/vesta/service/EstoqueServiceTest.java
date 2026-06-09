@@ -85,6 +85,55 @@ class EstoqueServiceTest {
     }
 
     @Test
+    void movimentacaoNormalizaEstoque_resolveAlertaEstoqueCritico() {
+        Abrigo abrigo = new Abrigo(); abrigo.setIdAbrigo(1L);
+        Recurso recurso = new Recurso(); recurso.setIdRecurso(1L); recurso.setNmRecurso("Água");
+        EstoqueAbrigo estoque = new EstoqueAbrigo();
+        estoque.setAbrigo(abrigo); estoque.setRecurso(recurso);
+        estoque.setQtAtual(5); estoque.setQtMinima(10);
+        Usuario usuario = new Usuario(); usuario.setIdUsuario(1L);
+
+        Alerta alertaAtivo = new Alerta();
+        alertaAtivo.setStStatus("ATIVO");
+
+        when(abrigoService.buscarPorId(1L)).thenReturn(abrigo);
+        when(recursoRepository.findById(1L)).thenReturn(Optional.of(recurso));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(estoqueRepository.findByAbrigoIdAbrigoAndRecursoIdRecurso(1L, 1L)).thenReturn(Optional.of(estoque));
+        when(alertaRepository.findByAbrigoIdAbrigoAndTpAlertaAndRecursoIdRecursoAndStStatus(
+                1L, TipoAlerta.ESTOQUE_CRITICO, 1L, "ATIVO")).thenReturn(Optional.of(alertaAtivo));
+
+        // 5 + 10 = 15 >= 10 (mínimo) → estoque normalizado
+        estoqueService.registrarMovimentacao(1L, 1L,
+                new MovimentacaoRequest(1L, TipoMovimentacao.ENTRADA, 10, null, null));
+
+        verify(alertaRepository).save(argThat(a -> "RESOLVIDO".equals(a.getStStatus())));
+    }
+
+    @Test
+    void movimentacaoMantemEstoqueCritico_naoResolveAlerta() {
+        Abrigo abrigo = new Abrigo(); abrigo.setIdAbrigo(1L);
+        Recurso recurso = new Recurso(); recurso.setIdRecurso(1L); recurso.setNmRecurso("Água");
+        EstoqueAbrigo estoque = new EstoqueAbrigo();
+        estoque.setAbrigo(abrigo); estoque.setRecurso(recurso);
+        estoque.setQtAtual(2); estoque.setQtMinima(10);
+        Usuario usuario = new Usuario(); usuario.setIdUsuario(1L);
+
+        when(abrigoService.buscarPorId(1L)).thenReturn(abrigo);
+        when(recursoRepository.findById(1L)).thenReturn(Optional.of(recurso));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(estoqueRepository.findByAbrigoIdAbrigoAndRecursoIdRecurso(1L, 1L)).thenReturn(Optional.of(estoque));
+        when(alertaRepository.findByAbrigoIdAbrigoAndTpAlertaAndRecursoIdRecursoAndStStatus(
+                1L, TipoAlerta.ESTOQUE_CRITICO, 1L, "ATIVO")).thenReturn(Optional.empty());
+
+        // 2 + 1 = 3 < 10 (mínimo) → ainda crítico
+        estoqueService.registrarMovimentacao(1L, 1L,
+                new MovimentacaoRequest(1L, TipoMovimentacao.ENTRADA, 1, null, null));
+
+        verify(alertaRepository, never()).save(argThat(a -> "RESOLVIDO".equals(a.getStStatus())));
+    }
+
+    @Test
     void mesmoRecursoCriticoDuasVezes_geraSomenteUmAlerta() {
         Abrigo abrigo = new Abrigo(); abrigo.setIdAbrigo(1L);
         Recurso recurso = new Recurso(); recurso.setIdRecurso(1L); recurso.setNmRecurso("Água");

@@ -12,6 +12,7 @@ import br.com.fiap.vesta.exception.ResourceNotFoundException;
 import br.com.fiap.vesta.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -133,6 +134,14 @@ public class EstoqueService {
                     + " abaixo do mínimo (" + estoque.getQtAtual() + "/" + estoque.getQtMinima() + ")");
                 alertaRepository.save(alerta);
             }
+        } else {
+            alertaRepository.findByAbrigoIdAbrigoAndTpAlertaAndRecursoIdRecursoAndStStatus(
+                    abrigo.getIdAbrigo(), TipoAlerta.ESTOQUE_CRITICO, recurso.getIdRecurso(), "ATIVO")
+                .ifPresent(alerta -> {
+                    alerta.setStStatus("RESOLVIDO");
+                    alerta.setDtResolucao(LocalDateTime.now());
+                    alertaRepository.save(alerta);
+                });
         }
     }
 

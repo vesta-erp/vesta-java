@@ -2,6 +2,7 @@ package br.com.fiap.vesta.service;
 
 import br.com.fiap.vesta.domain.entity.*;
 import br.com.fiap.vesta.domain.enums.StatusAbrigo;
+import br.com.fiap.vesta.domain.enums.TipoAlerta;
 import br.com.fiap.vesta.dto.request.AcolhimentoRequest;
 import br.com.fiap.vesta.dto.response.FamiliaResponse;
 import br.com.fiap.vesta.dto.response.PessoaAbrigadaResponse;
@@ -20,15 +21,18 @@ public class FamiliaService {
     private final PessoaAbrigadaRepository pessoaRepository;
     private final AbrigoRepository abrigoRepository;
     private final AbrigoService abrigoService;
+    private final AlertaRepository alertaRepository;
 
     public FamiliaService(FamiliaRepository familiaRepository,
                           PessoaAbrigadaRepository pessoaRepository,
                           AbrigoRepository abrigoRepository,
-                          AbrigoService abrigoService) {
+                          AbrigoService abrigoService,
+                          AlertaRepository alertaRepository) {
         this.familiaRepository = familiaRepository;
         this.pessoaRepository = pessoaRepository;
         this.abrigoRepository = abrigoRepository;
         this.abrigoService = abrigoService;
+        this.alertaRepository = alertaRepository;
     }
 
     public List<FamiliaResponse> listarPorAbrigo(Long idAbrigo) {
@@ -119,8 +123,19 @@ public class FamiliaService {
         abrigo.setQtOcupacaoAtual(novaOcupacao);
         if (abrigo.getStStatus() == StatusAbrigo.LOTADO && novaOcupacao < abrigo.getQtCapacidadeMaxima()) {
             abrigo.setStStatus(StatusAbrigo.ATIVO);
+            resolverAlertaLotacao(abrigo);
         }
         abrigoRepository.save(abrigo);
+    }
+
+    private void resolverAlertaLotacao(Abrigo abrigo) {
+        alertaRepository.findByAbrigoIdAbrigoAndTpAlertaAndStStatus(
+                abrigo.getIdAbrigo(), TipoAlerta.LOTACAO, "ATIVO")
+            .ifPresent(alerta -> {
+                alerta.setStStatus("RESOLVIDO");
+                alerta.setDtResolucao(LocalDateTime.now());
+                alertaRepository.save(alerta);
+            });
     }
 
     private FamiliaResponse toResponse(Familia f) {

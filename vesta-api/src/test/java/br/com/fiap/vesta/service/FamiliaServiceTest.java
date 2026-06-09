@@ -2,6 +2,8 @@ package br.com.fiap.vesta.service;
 
 import br.com.fiap.vesta.domain.entity.*;
 import br.com.fiap.vesta.domain.enums.StatusAbrigo;
+import br.com.fiap.vesta.domain.enums.TipoAlerta;
+import java.util.List;
 import br.com.fiap.vesta.exception.BusinessRuleException;
 import br.com.fiap.vesta.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +22,7 @@ class FamiliaServiceTest {
     @Mock PessoaAbrigadaRepository pessoaRepository;
     @Mock AbrigoRepository abrigoRepository;
     @Mock AbrigoService abrigoService;
+    @Mock AlertaRepository alertaRepository;
 
     @InjectMocks FamiliaService familiaService;
 
@@ -91,6 +94,49 @@ class FamiliaServiceTest {
         familiaService.registrarAcolhimento(1L, criarAcolhimentoRequest(1));
 
         verify(abrigoService, never()).gerarAlertaLotacao(any());
+    }
+
+    @Test
+    void saida_desocupaAbrigoLotado_resolveAlertaLotacao() {
+        abrigo.setQtCapacidadeMaxima(10);
+        abrigo.setQtOcupacaoAtual(10);
+        abrigo.setStStatus(StatusAbrigo.LOTADO);
+
+        Familia familia = new Familia();
+        familia.setIdFamilia(1L);
+        familia.setAbrigo(abrigo);
+
+        PessoaAbrigada pessoa = new PessoaAbrigada(); // stPresente = "S" por padrão
+
+        Alerta alertaAtivo = new Alerta();
+        alertaAtivo.setStStatus("ATIVO");
+
+        when(familiaRepository.findById(1L)).thenReturn(Optional.of(familia));
+        when(pessoaRepository.findByFamiliaIdFamilia(1L)).thenReturn(List.of(pessoa));
+        when(alertaRepository.findByAbrigoIdAbrigoAndTpAlertaAndStStatus(
+                1L, TipoAlerta.LOTACAO, "ATIVO")).thenReturn(Optional.of(alertaAtivo));
+
+        familiaService.registrarSaida(1L);
+
+        verify(alertaRepository).save(argThat(a -> "RESOLVIDO".equals(a.getStStatus())));
+    }
+
+    @Test
+    void saida_abrigoNaoLotado_naoTocaAlertas() {
+        // abrigo ATIVO com espaço disponível — saída não muda status
+        Familia familia = new Familia();
+        familia.setIdFamilia(1L);
+        familia.setAbrigo(abrigo); // status ATIVO, 50/100
+
+        PessoaAbrigada pessoa = new PessoaAbrigada();
+
+        when(familiaRepository.findById(1L)).thenReturn(Optional.of(familia));
+        when(pessoaRepository.findByFamiliaIdFamilia(1L)).thenReturn(List.of(pessoa));
+
+        familiaService.registrarSaida(1L);
+
+        verify(alertaRepository, never()).findByAbrigoIdAbrigoAndTpAlertaAndStStatus(any(), any(), any());
+        verify(alertaRepository, never()).save(any());
     }
 
     private br.com.fiap.vesta.dto.request.AcolhimentoRequest criarAcolhimentoRequest(int membros) {
