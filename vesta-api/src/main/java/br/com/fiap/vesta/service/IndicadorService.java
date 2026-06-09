@@ -1,13 +1,22 @@
 package br.com.fiap.vesta.service;
 
+import br.com.fiap.vesta.client.CriticidadeClient;
+import br.com.fiap.vesta.client.dto.CriticidadeResponse;
 import br.com.fiap.vesta.domain.entity.Abrigo;
 import br.com.fiap.vesta.domain.enums.StatusOcorrencia;
 import br.com.fiap.vesta.dto.response.IndicadorAbrigoResponse;
-import br.com.fiap.vesta.repository.*;
+import br.com.fiap.vesta.exception.ResourceNotFoundException;
+import br.com.fiap.vesta.repository.AbrigoRepository;
+import br.com.fiap.vesta.repository.EstoqueAbrigoRepository;
+import br.com.fiap.vesta.repository.OcorrenciaRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class IndicadorService {
@@ -15,27 +24,53 @@ public class IndicadorService {
     private final AbrigoRepository abrigoRepository;
     private final EstoqueAbrigoRepository estoqueRepository;
     private final OcorrenciaRepository ocorrenciaRepository;
+    private final CriticidadeClient criticidadeClient;
 
     public IndicadorService(AbrigoRepository abrigoRepository,
-                             EstoqueAbrigoRepository estoqueRepository,
-                             OcorrenciaRepository ocorrenciaRepository) {
+                            EstoqueAbrigoRepository estoqueRepository,
+                            OcorrenciaRepository ocorrenciaRepository,
+                            CriticidadeClient criticidadeClient) {
         this.abrigoRepository = abrigoRepository;
         this.estoqueRepository = estoqueRepository;
         this.ocorrenciaRepository = ocorrenciaRepository;
+        this.criticidadeClient = criticidadeClient;
     }
 
     @Cacheable("indicadores")
     public List<IndicadorAbrigoResponse> rankingCriticidade() {
-        return abrigoRepository.findAll().stream()
+        List<IndicadorAbrigoResponse> locais = abrigoRepository.findAll().stream()
             .map(this::calcularIndicador)
-            .sorted(Comparator.comparingInt(IndicadorAbrigoResponse::nivelCriticidade).reversed())
+            .toList();
+
+        Map<Long, CriticidadeResponse> scoresNet = criticidadeClient.listarCriticidade()
+            .stream()
+            .collect(Collectors.toMap(CriticidadeResponse::idAbrigo, Function.identity()));
+
+        return locais.stream()
+            .map(ind -> enriquecer(ind, scoresNet.get(ind.idAbrigo())))
+            .sorted(Comparator.comparingDouble((IndicadorAbrigoResponse r) ->
+                r.scoreNet() != null ? r.scoreNet() : (double) r.nivelCriticidade()
+            ).reversed())
             .toList();
     }
 
     public IndicadorAbrigoResponse indicadorPorAbrigo(Long idAbrigo) {
         Abrigo abrigo = abrigoRepository.findById(idAbrigo)
-            .orElseThrow(() -> new br.com.fiap.vesta.exception.ResourceNotFoundException("Abrigo", idAbrigo));
-        return calcularIndicador(abrigo);
+            .orElseThrow(() -> new ResourceNotFoundException("Abrigo", idAbrigo));
+        IndicadorAbrigoResponse local = calcularIndicador(abrigo);
+        CriticidadeResponse scoreNet = criticidadeClient.buscarCriticidade(idAbrigo);
+        return enriquecer(local, scoreNet);
+    }
+
+    private IndicadorAbrigoResponse enriquecer(IndicadorAbrigoResponse local, CriticidadeResponse score) {
+        if (score == null) return local;
+        return new IndicadorAbrigoResponse(
+            local.idAbrigo(), local.nmAbrigo(), local.nmRegiao(), local.stStatus(),
+            local.qtCapacidadeMaxima(), local.qtOcupacaoAtual(), local.taxaOcupacao(),
+            local.qtItensAbaixoMinimo(), local.qtOcorrenciasAbertas(),
+            local.nivelCriticidade(), local.descricaoCriticidade(),
+            score.score(), score.nivel(), score.justificativa(), score.recomendacoes()
+        );
     }
 
     private IndicadorAbrigoResponse calcularIndicador(Abrigo a) {
