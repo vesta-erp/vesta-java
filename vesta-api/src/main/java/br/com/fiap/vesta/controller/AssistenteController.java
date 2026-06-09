@@ -30,6 +30,7 @@ public class AssistenteController {
     }
 
     @GetMapping("/health")
+    @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
     @Operation(summary = "Verificar disponibilidade do assistente")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Assistente operacional Vesta disponível");

@@ -28,6 +28,7 @@ public class IndicadorController {
     }
 
     @GetMapping("/abrigo/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
     @Operation(summary = "Indicador de criticidade de um abrigo específico")
     public ResponseEntity<IndicadorAbrigoResponse> porAbrigo(@PathVariable Long id) {
         return ResponseEntity.ok(indicadorService.indicadorPorAbrigo(id));

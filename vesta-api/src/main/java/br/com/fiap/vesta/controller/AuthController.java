@@ -1,5 +1,6 @@
 package br.com.fiap.vesta.controller;
 
+import br.com.fiap.vesta.annotation.EndpointPublico;
 import br.com.fiap.vesta.dto.request.LoginRequest;
 import br.com.fiap.vesta.dto.response.AuthResponse;
 import br.com.fiap.vesta.service.AuthService;
@@ -21,6 +22,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @EndpointPublico
     @Operation(summary = "Autenticar usuário e obter token JWT")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));

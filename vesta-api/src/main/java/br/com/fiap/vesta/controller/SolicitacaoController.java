@@ -12,6 +12,7 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -80,6 +81,7 @@ public class SolicitacaoController {
     }
 
     @PatchMapping("/api/solicitacoes/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','GESTOR')")
     @Operation(summary = "Avançar status da solicitação (workflow controlado)")
     public ResponseEntity<EntityModel<SolicitacaoResponse>> atualizarStatus(@PathVariable Long id,
                                                                               @Valid @RequestBody AtualizacaoSolicitacaoRequest req) {
