@@ -95,10 +95,11 @@ Authorization: Bearer <token>
 
 | Método | Rota | Descrição | Perfis |
 |---|---|---|---|
-| `GET` | `/api/familias` | Listar famílias (filtro `?idAbrigo=`) | Todos |
-| `GET` | `/api/familias/{id}` | Buscar família | Todos |
-| `POST` | `/api/familias/acolhimento` | Registrar acolhimento de família | ADMIN, GESTOR, OPERADOR |
-| `POST` | `/api/familias/{id}/saida` | Registrar saída de família | ADMIN, GESTOR, OPERADOR |
+| `GET` | `/api/abrigos/{idAbrigo}/familias` | Listar famílias do abrigo | Todos |
+| `GET` | `/api/abrigos/{idAbrigo}/familias/{idFamilia}` | Buscar família | Todos |
+| `GET` | `/api/abrigos/{idAbrigo}/familias/{idFamilia}/pessoas` | Listar pessoas da família | Todos |
+| `POST` | `/api/abrigos/{idAbrigo}/familias/acolhimento` | Registrar acolhimento de família | ADMIN, GESTOR, OPERADOR |
+| `POST` | `/api/abrigos/{idAbrigo}/familias/{idFamilia}/saida` | Registrar saída de família | ADMIN, GESTOR, OPERADOR |
 
 ### Estoque
 
@@ -140,13 +141,19 @@ Authorization: Bearer <token>
 | `GET` | `/api/alertas/abrigo/{idAbrigo}` | Alertas de um abrigo | Todos |
 | `PATCH` | `/api/alertas/{id}/resolver` | Resolver alerta | ADMIN, GESTOR, OPERADOR |
 
-### Indicadores e IA
+### Indicadores e Criticidade
 
 | Método | Rota | Descrição | Perfis |
 |---|---|---|---|
 | `GET` | `/api/indicadores/ranking` | Ranking de abrigos por criticidade | ADMIN, GESTOR |
 | `GET` | `/api/indicadores/abrigo/{id}` | Indicadores de criticidade de um abrigo | Todos |
-| `GET` | `/api/indicadores/abrigo/{id}/resumo` | Resumo operacional gerado por IA | Todos |
+
+### Assistente Operacional IA
+
+| Método | Rota | Descrição | Perfis |
+|---|---|---|---|
+| `POST` | `/api/assistente` | Fazer pergunta ao assistente operacional | ADMIN, GESTOR |
+| `GET` | `/api/assistente/health` | Verificar disponibilidade do assistente | Todos |
 
 ---
 
@@ -166,7 +173,7 @@ Authorization: Bearer <token>
 
 ```
 src/main/java/br/com/fiap/vesta/
-├── config/          # SecurityConfig, CacheConfig, CorsConfig, OpenApiConfig, FeignConfig
+├── config/          # SecurityConfig, CacheConfig, CorsConfig, OpenApiConfig, FeignConfig, SpringAiConfig
 ├── security/        # JwtTokenProvider, JwtAuthenticationFilter, UserDetailsServiceImpl
 ├── domain/
 │   ├── entity/      # 14 entidades JPA (Abrigo, Familia, Recurso, etc.)
@@ -183,7 +190,7 @@ src/main/java/br/com/fiap/vesta/
 src/main/resources/
 ├── application.yml
 ├── application-test.yml
-└── db/migration/    # Scripts Flyway (V1__create_tables, V2__seed_data)
+└── db/migration/    # Scripts Flyway (V6__create_tables, V7__seed_data, V8__fix_password_hashes)
 ```
 
 ---
