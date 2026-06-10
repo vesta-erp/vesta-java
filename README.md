@@ -274,7 +274,8 @@ src/main/resources/
     ├── V8__fix_password_hashes.sql
     ├── V9__alerta_add_id_recurso.sql
     ├── V10__usuario_add_cpf_telefone.sql
-    └── V11__usuario_add_id_regiao.sql
+    ├── V11__usuario_add_id_regiao.sql
+    └── V12__fix_invalid_password_hashes.sql
 ```
 
 ---
