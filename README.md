@@ -80,6 +80,13 @@ mvn spring-boot:run \
 - API disponível em: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 
+### Ambiente de Produção (Azure)
+
+| | URL |
+|---|---|
+| **API** | `https://vesta-api-java-gwf7drgza3hjgfc6.brazilsouth-01.azurewebsites.net` |
+| **Swagger UI** | `https://vesta-api-java-gwf7drgza3hjgfc6.brazilsouth-01.azurewebsites.net/swagger-ui.html` |
+
 ---
 
 ## Endpoints
