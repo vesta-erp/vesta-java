@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.*;
@@ -111,6 +112,23 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleInternalAuth_causaDataAccess_returns500ComErroBancoDeDados() throws Exception {
+        mockMvc.perform(get("/test/internal-auth-db"))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.errorCode").value("ERRO_BANCO_DE_DADOS"))
+            .andExpect(jsonPath("$.errorId").isNotEmpty());
+    }
+
+    @Test
+    void handleInternalAuth_causaGenerica_returns500ComErroInterno() throws Exception {
+        mockMvc.perform(get("/test/internal-auth-generic"))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.errorCode").value("ERRO_INTERNO"))
+            .andExpect(jsonPath("$.errorId").isNotEmpty())
+            .andExpect(jsonPath("$.detail").value("Erro interno. Tente novamente em instantes."));
+    }
+
+    @Test
     void handleUnexpected_returns500ComErrorIdNaoNulo() throws Exception {
         mockMvc.perform(get("/test/unexpected"))
             .andExpect(status().isInternalServerError())
@@ -168,6 +186,19 @@ class GlobalExceptionHandlerTest {
         void dbError() {
             throw new JpaSystemException(new RuntimeException(
                 new SQLException("ORA-00942: table or view does not exist", "42000", 942)));
+        }
+
+        @GetMapping("/test/internal-auth-db")
+        void internalAuthDb() {
+            var dbEx = new JpaSystemException(new RuntimeException(
+                new SQLException("Connection refused", "08006", 17002)));
+            throw new InternalAuthenticationServiceException("UserDetailsService failed", dbEx);
+        }
+
+        @GetMapping("/test/internal-auth-generic")
+        void internalAuthGeneric() {
+            throw new InternalAuthenticationServiceException("Erro genérico durante autenticação",
+                new RuntimeException("causa genérica"));
         }
 
         @GetMapping("/test/unexpected")

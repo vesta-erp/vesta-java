@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -59,6 +60,23 @@ public class GlobalExceptionHandler {
         log.warn("Autenticação falhou [{}]", req.getRequestURI());
         return buildProblemDetail(HttpStatus.UNAUTHORIZED, "Autenticação falhou",
             "Credenciais inválidas", VestaErrorCode.AUTENTICACAO_FALHOU, req);
+    }
+
+    // Spring Security envolve qualquer exceção não esperada de UserDetailsService neste tipo.
+    // Sem este handler, falhas de conectividade Oracle durante autenticação caem no catch-all (500 ERRO_INTERNO).
+    @ExceptionHandler(InternalAuthenticationServiceException.class)
+    public ProblemDetail handleInternalAuth(InternalAuthenticationServiceException ex, HttpServletRequest req) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof DataAccessException dae) {
+            log.error("Erro de banco durante autenticação [{}]", req.getRequestURI(), dae);
+            return buildProblemDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Erro de banco de dados",
+                "Erro interno ao acessar o banco de dados.",
+                VestaErrorCode.ERRO_BANCO_DE_DADOS, req);
+        }
+        log.error("Falha inesperada durante autenticação [{}]: {}", req.getRequestURI(), ex.getMessage(), ex);
+        return buildProblemDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno",
+            "Erro interno. Tente novamente em instantes.",
+            VestaErrorCode.ERRO_INTERNO, req);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
