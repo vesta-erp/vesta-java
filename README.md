@@ -32,7 +32,8 @@ API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos 
 | Documentação | Springdoc OpenAPI 2.6.0 (Swagger UI) |
 | Integração | Spring Cloud OpenFeign 2023.0.3 (serviço .NET) |
 | IA | Spring AI 1.0.0 — Azure OpenAI (gpt-4o) |
-| Testes | JUnit 5, Mockito, MockMvc (11 classes de teste) |
+| Observabilidade | Micrometer Tracing (Brave) + logstash-logback-encoder 8.0 |
+| Testes | JUnit 5, Mockito, MockMvc (14 classes de teste) |
 
 ---
 
@@ -57,6 +58,8 @@ API REST principal da plataforma **Vesta**, sistema de gerenciamento de abrigos 
 | `AZURE_OPENAI_ENDPOINT` | Endpoint do Azure OpenAI | _(vazio — IA desativada)_ |
 | `AZURE_OPENAI_DEPLOYMENT` | Nome do deployment | `gpt-4o` |
 | `DOTNET_URL` | URL do serviço .NET de criticidade | `http://localhost:5000` |
+| `TRACING_SAMPLING_PROBABILITY` | Fração de requisições rastreadas (0.0–1.0) | `1.0` |
+| `SPRING_PROFILES_ACTIVE` | Perfil ativo — use `azure` em produção para logs JSON | _(não definido)_ |
 
 ---
 
@@ -194,6 +197,68 @@ Authorization: Bearer <token>
 
 ---
 
+## Observabilidade e Rastreio de Erros
+
+### Logs Estruturados
+
+| Perfil | Formato | Destino |
+|---|---|---|
+| `prod`, `azure` | JSON (logstash-logback-encoder) | stdout → Azure App Service Log Stream |
+| Demais (dev, test) | Texto legível com `traceId`/`spanId` | console |
+
+Cada linha de log em produção inclui `traceId`, `spanId`, `app`, `level`, `logger`, `message` e campos adicionais por tipo de evento.
+
+### Rastreio por Requisição
+
+O Micrometer Tracing (Brave) injeta automaticamente um `traceId` único no MDC para cada requisição HTTP. Todas as linhas de log geradas durante aquela requisição compartilham o mesmo `traceId` — basta colar o valor no Log Stream para encontrar toda a trilha.
+
+### Log de Acesso (RequestLoggingFilter)
+
+Cada requisição gera uma linha `INFO` com:
+
+```json
+{"level":"INFO","message":"REQUEST","method":"POST","uri":"/api/abrigos/5/acolhimento","user":"operador@vesta.com","status":422,"durationMs":87,"traceId":"a3f8c291bed042e0"}
+```
+
+Endpoints de infraestrutura (`/actuator/**`, `/swagger-ui/**`, `/v3/api-docs`) são ignorados.
+
+### Respostas de Erro (ProblemDetail)
+
+Todos os erros retornam [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) com campos extras:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Regra de negócio violada",
+  "status": 422,
+  "detail": "Abrigo atingiu capacidade máxima",
+  "instance": "/api/abrigos/5/acolhimento",
+  "timestamp": "2026-06-10T14:32:01Z",
+  "errorId": "a3f8c291bed042e0",
+  "errorCode": "REGRA_DE_NEGOCIO_VIOLADA"
+}
+```
+
+O `errorId` é idêntico ao `traceId` do Log Stream — o cliente pode reportar o `errorId` e o desenvolvedor localiza o stack trace completo em segundos.
+
+### Códigos de Erro (`VestaErrorCode`)
+
+| Código | Exceção | HTTP |
+|---|---|---|
+| `RECURSO_NAO_ENCONTRADO` | `ResourceNotFoundException` | 404 |
+| `REGRA_DE_NEGOCIO_VIOLADA` | `BusinessRuleException` | 422 |
+| `CONFLITO_DE_DADOS` | `ConflictException` | 409 |
+| `ACESSO_NEGADO` | `UnauthorizedException`, `AccessDeniedException` | 403 |
+| `AUTENTICACAO_FALHOU` | `BadCredentialsException` | 401 |
+| `CAMPOS_INVALIDOS` | `MethodArgumentNotValidException` | 400 |
+| `LIMITE_CONEXOES_DB` | `DataAccessException` + ORA-02391 | 503 |
+| `ERRO_BANCO_DE_DADOS` | `DataAccessException` (demais) | 500 |
+| `ERRO_INTERNO` | `Exception` (catch-all) | 500 |
+
+HTTP 503 para ORA-02391 é intencional: indica falha transitória de sessões Oracle — uma nova tentativa pode ter sucesso.
+
+---
+
 ## Regras de Negócio Implementadas
 
 ### Capacidade e Acolhimento
@@ -270,11 +335,13 @@ src/main/java/br/com/fiap/vesta/
 ├── service/          # Lógica de negócio (13 services, incluindo IsolamentoService)
 ├── controller/       # 11 controllers REST com HATEOAS (EntityModel / CollectionModel)
 ├── client/           # CriticidadeClient (Feign) + CriticidadeClientFallback
-└── exception/        # GlobalExceptionHandler (@RestControllerAdvice) + exceções customizadas
+├── filter/           # RequestLoggingFilter (log de acesso por requisição)
+└── exception/        # GlobalExceptionHandler, VestaErrorCode + exceções customizadas
 
 src/main/resources/
 ├── application.yml
 ├── application-test.yml
+├── logback-spring.xml    # JSON (prod/azure) | console com traceId (dev)
 └── db/migration/
     ├── V6__create_tables.sql
     ├── V7__seed_data.sql
@@ -297,7 +364,7 @@ mvn test
 mvn test -Dtest=FamiliaServiceTest
 ```
 
-11 classes de teste com Mockito (sem banco de dados real). O perfil `test` é ativado automaticamente via `application-test.yml`, desabilitando o Flyway e configurando JWT para testes.
+14 classes de teste com Mockito (sem banco de dados real). O perfil `test` é ativado automaticamente via `application-test.yml`, desabilitando o Flyway e configurando JWT para testes.
 
 | Classe | Cobertura |
 |---|---|
@@ -313,6 +380,9 @@ mvn test -Dtest=FamiliaServiceTest
 | `UsuarioServiceTest` | Cadastro, atualização, desativação |
 | `AuthControllerTest` | Login, token JWT, MockMvc |
 | `JwtTokenProviderTest` | Geração e validação de tokens |
+| `GlobalExceptionHandlerTest` | Todos os 9 handlers, errorId, errorCode, ORA-02391, sem vazamento de info |
+| `RequestLoggingFilterTest` | Log de acesso, usuário pós-chain, anônimo, status, exceção, shouldNotFilter |
+| `VestaErrorCodeTest` | Presença dos 9 valores do enum |
 
 ---
 
