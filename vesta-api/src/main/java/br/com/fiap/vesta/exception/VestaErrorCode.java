@@ -1,0 +1,13 @@
+package br.com.fiap.vesta.exception;
+
+public enum VestaErrorCode {
+    RECURSO_NAO_ENCONTRADO,
+    REGRA_DE_NEGOCIO_VIOLADA,
+    CONFLITO_DE_DADOS,
+    ACESSO_NEGADO,
+    AUTENTICACAO_FALHOU,
+    CAMPOS_INVALIDOS,
+    LIMITE_CONEXOES_DB,
+    ERRO_BANCO_DE_DADOS,
+    ERRO_INTERNO
+}

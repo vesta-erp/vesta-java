@@ -55,7 +55,10 @@ logging:
     org.springframework.security: WARN
 
 management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,loggers
