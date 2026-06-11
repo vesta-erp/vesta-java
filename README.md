@@ -390,21 +390,35 @@ mvn test -Dtest=FamiliaServiceTest
 
 ---
 
-## Integração com o Serviço .NET
+## Arquitetura de Microserviços
 
-A API consome o serviço .NET de criticidade via **Spring Cloud OpenFeign**.
+A plataforma Vesta é composta por dois serviços independentes com responsabilidades distintas, deployados separadamente no Azure:
 
-- **Client**: `CriticidadeClient` — chama `GET /api/criticidade/abrigos` e `GET /api/criticidade/abrigos/{id}`
-- **Fallback**: `CriticidadeClientFallback` — retorna `"INDISPONIVEL"` quando o .NET está offline; a API Java opera de forma autônoma
-- **Configuração**: variável `DOTNET_URL` (padrão: `http://localhost:5000`)
-- **Resposta enriquecida**: `IndicadorAbrigoResponse` contém campos locais (`nivelCriticidade`, `descricaoCriticidade`) e campos do .NET (`scoreNet`, `nivelNet`, `justificativa`, `recomendacoes`)
+| Serviço | Responsabilidade |
+|---|---|
+| **vesta-api** (Java) | Núcleo transacional — autenticação, abrigos, acolhimento, estoque, ocorrências, solicitações |
+| **vesta-dotnet** (.NET) | Decisão e análise — score de criticidade, ranking, recomendações de recursos |
 
-O .NET, por sua vez, busca dados de abrigos na Java API via HTTP para calcular seu próprio score de criticidade.
+Cada serviço tem seu próprio deploy, banco e ciclo de vida. A comunicação é via HTTP REST (Feign no Java → .NET). O Java é a fonte de verdade dos dados operacionais; o .NET consome essa API para produzir análises.
 
 ---
 
-## Assistente Operacional IA
+## Integração com o Serviço .NET (Feign)
 
-Powered by **Azure OpenAI (gpt-4o)** via Spring AI. O assistente recebe uma pergunta em linguagem natural e responde com base no contexto operacional atual dos abrigos (ocupação, estoque crítico, ocorrências abertas, alertas ativos).
+A API consome o serviço .NET via **Spring Cloud OpenFeign** — cliente HTTP declarativo com integração nativa ao circuit breaker Resilience4j.
+
+- **Client**: `CriticidadeClient` — `GET /api/criticidade/abrigos` e `GET /api/criticidade/abrigos/{id}`
+- **Fallback**: `CriticidadeClientFallback` — retorna `"INDISPONIVEL"` quando o .NET está offline; a criticidade é calculada localmente pelo `IndicadorService`
+- **Logging**: `FeignConfig` configura `Logger.Level.BASIC`
+- **Configuração**: variável `DOTNET_URL` (padrão: `http://localhost:5000`)
+- **Resposta enriquecida**: `IndicadorAbrigoResponse` contém campos locais (`nivelCriticidade`, `descricaoCriticidade`) e campos do .NET (`scoreNet`, `nivelNet`, `justificativa`, `recomendacoes`)
+
+---
+
+## Assistente Operacional IA (Spring AI)
+
+Powered by **Azure OpenAI (gpt-4o)** via Spring AI `ChatClient`. O assistente responde perguntas em linguagem natural sobre a operação em tempo real dos abrigos.
+
+O padrão utilizado é **context grounding**: a cada requisição, o `ContextoOperacionalService` busca dados atuais do Oracle (ocupação, ranking de criticidade, solicitações atrasadas) e injeta no `system` prompt. O modelo responde fundamentado exclusivamente nesses dados — sem inventar números ou situações. A leitura direta do banco é preferível a um índice de embeddings porque os dados operacionais mudam continuamente.
 
 Quando as variáveis `AZURE_OPENAI_*` não estão configuradas, o endpoint retorna uma resposta de indisponibilidade sem lançar erro.
